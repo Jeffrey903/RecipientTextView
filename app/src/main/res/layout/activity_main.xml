@@ -1,0 +1,26 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:paddingLeft="@dimen/activity_horizontal_margin"
+    android:paddingRight="@dimen/activity_horizontal_margin"
+    android:paddingTop="@dimen/activity_vertical_margin"
+    android:paddingBottom="@dimen/activity_vertical_margin"
+    android:orientation="vertical"
+    tools:context="cm.confide.recipienttextview.app.MainActivity">
+
+    <cm.confide.ex.chips.RecipientEditTextView
+        android:id="@+id/email_retv"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Hint email"
+        android:minHeight="58dp" />
+
+    <cm.confide.ex.chips.RecipientEditTextView
+        android:id="@+id/phone_retv"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Hint phone"
+        android:minHeight="58dp" />
+
+</LinearLayout>

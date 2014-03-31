@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:xliff="http://schemas.android.com/apk/res/android">
+
+    <string name="app_name">RecipientTextView</string>
+    <string name="hello_world">Hello world!</string>
+    <string name="action_settings">Settings</string>
+
+    <!-- Text displayed when the recipientedittextview is not focused. Displays the total number of recipients since the field is shrunk to just display a portion -->
+    <string name="more_string">\u002B<xliff:g id="count">%1$s</xliff:g></string>
+
+    <!-- Text displayed when the user long presses on a chip to copy the recipients email address.
+         [CHAR LIMIT=200] -->
+    <string name="copy_email">Copy email address</string>
+    <!-- Text displayed when the user long presses on a chip to copy the recipient's phone number.
+         [CHAR LIMIT=200] -->
+    <string name="copy_number">Copy phone number</string>
+    <!-- Text displayed in the enter key slot when the recipientedittextview has focus.
+         [CHAR LIMIT=12] -->
+    <string name="done">Return</string>
+
+</resources>
