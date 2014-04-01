@@ -28,12 +28,9 @@ import android.content.DialogInterface.OnDismissListener;
 import android.content.res.Resources;
 import android.content.res.TypedArray;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
-import android.graphics.Matrix;
 import android.graphics.Point;
 import android.graphics.Rect;
-import android.graphics.RectF;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.os.AsyncTask;
@@ -42,7 +39,6 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
 import android.os.Parcelable;
-import android.support.v7.internal.widget.ListPopupWindow;
 import android.text.Editable;
 import android.text.InputType;
 import android.text.Layout;
@@ -78,6 +74,7 @@ import android.widget.AdapterView.OnItemClickListener;
 import android.widget.Button;
 import android.widget.Filterable;
 import android.widget.ListAdapter;
+import android.widget.ListPopupWindow;
 import android.widget.ListView;
 import android.widget.MultiAutoCompleteTextView;
 import android.widget.ScrollView;
@@ -2893,8 +2890,8 @@ public class RecipientEditTextView extends MultiAutoCompleteTextView implements
                 && getAdapter().getQueryType() == BaseRecipientAdapter.QUERY_TYPE_PHONE;
     }
 
-//    @Override
-//    public BaseRecipientAdapter getAdapter() {
-//        return (BaseRecipientAdapter) super.getAdapter();
-//    }
+    @Override
+    public BaseRecipientAdapter getAdapter() {
+        return (BaseRecipientAdapter) super.getAdapter();
+    }
 }

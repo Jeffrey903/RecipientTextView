@@ -2,13 +2,12 @@ package cm.confide.recipienttextview.app;
 
 import android.os.Bundle;
 import android.support.v7.app.ActionBarActivity;
+import android.text.util.Rfc822Tokenizer;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.widget.ArrayAdapter;
 import android.widget.MultiAutoCompleteTextView;
 
-import java.util.ArrayList;
-
+import cm.confide.ex.chips.BaseRecipientAdapter;
 import cm.confide.ex.chips.RecipientEditTextView;
 
 
@@ -21,27 +20,14 @@ public class MainActivity extends ActionBarActivity {
 
         final RecipientEditTextView emailRetv =
                 (RecipientEditTextView) findViewById(R.id.email_retv);
-//        emailRetv.setTokenizer(new Rfc822Tokenizer());
-//        emailRetv.setAdapter(new BaseRecipientAdapter(this) { });
+        emailRetv.setTokenizer(new Rfc822Tokenizer());
+        emailRetv.setAdapter(new BaseRecipientAdapter(this) { });
 
         final RecipientEditTextView phoneRetv =
                 (RecipientEditTextView) findViewById(R.id.phone_retv);
         phoneRetv.setTokenizer(new MultiAutoCompleteTextView.CommaTokenizer());
-//        phoneRetv.setAdapter(new BaseRecipientAdapter(BaseRecipientAdapter.QUERY_TYPE_PHONE, this) { });
+        phoneRetv.setAdapter(new BaseRecipientAdapter(BaseRecipientAdapter.QUERY_TYPE_PHONE, this) { });
 
-
-
-        final ArrayList<String> items = new ArrayList<String>();
-        items.add("jeff");
-        items.add("rich");
-        items.add("jon");
-        items.add("dan");
-        items.add("howard");
-        items.add("david");
-        items.add("margie");
-        items.add("matty");
-
-        phoneRetv.setAdapter(new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, items));
     }
 
 
