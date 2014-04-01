@@ -19,9 +19,6 @@ package cm.confide.ex.chips;
 
 import android.annotation.TargetApi;
 import android.app.Dialog;
-import android.content.ClipData;
-import android.content.ClipDescription;
-import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.DialogInterface.OnDismissListener;
@@ -39,6 +36,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
 import android.os.Parcelable;
+import android.support.v7.internal.widget.ListPopupWindow;
 import android.text.Editable;
 import android.text.InputType;
 import android.text.Layout;
@@ -56,13 +54,10 @@ import android.text.util.Rfc822Tokenizer;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.util.TypedValue;
-import android.view.ActionMode;
 import android.view.DragEvent;
 import android.view.GestureDetector;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
-import android.view.Menu;
-import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.View.OnClickListener;
@@ -74,7 +69,6 @@ import android.widget.AdapterView.OnItemClickListener;
 import android.widget.Button;
 import android.widget.Filterable;
 import android.widget.ListAdapter;
-import android.widget.ListPopupWindow;
 import android.widget.ListView;
 import android.widget.MultiAutoCompleteTextView;
 import android.widget.ScrollView;
@@ -102,9 +96,8 @@ import cm.confide.recipienttextview.app.R;
  * RecipientEditTextView is an auto complete text view for use with applications
  * that use the new Chips UI for addressing a message to recipients.
  */
-@TargetApi(Build.VERSION_CODES.HONEYCOMB)
 public class RecipientEditTextView extends MultiAutoCompleteTextView implements
-        OnItemClickListener, ActionMode.Callback, RecipientAlternatesAdapter.OnCheckedItemChangedListener,
+        OnItemClickListener, RecipientAlternatesAdapter.OnCheckedItemChangedListener,
         GestureDetector.OnGestureListener, OnDismissListener, OnClickListener,
         TextView.OnEditorActionListener {
 
@@ -275,9 +268,11 @@ public class RecipientEditTextView extends MultiAutoCompleteTextView implements
         };
         setInputType(getInputType() | InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS);
         setOnItemClickListener(this);
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
-            setCustomSelectionActionModeCallback(this);
+            setCustomSelectionActionModeCallback(ActionModeCallbackCompat.getCallback());
         }
+
         mHandler = new Handler() {
             @Override
             public void handleMessage(Message msg) {
@@ -1748,28 +1743,6 @@ public class RecipientEditTextView extends MultiAutoCompleteTextView implements
         return recipientsList.toArray(new DrawableRecipientChip[recipientsList.size()]);
     }
 
-    @TargetApi(Build.VERSION_CODES.HONEYCOMB)
-    public boolean onActionItemClicked(android.view.ActionMode mode, MenuItem item) {
-        return false;
-    }
-
-    @TargetApi(Build.VERSION_CODES.HONEYCOMB)
-    public void onDestroyActionMode(android.view.ActionMode mode) {
-    }
-
-    @TargetApi(Build.VERSION_CODES.HONEYCOMB)
-    public boolean onPrepareActionMode(android.view.ActionMode mode, Menu menu) {
-        return false;
-    }
-
-    /**
-     * No chips are selectable.
-     */
-    @TargetApi(Build.VERSION_CODES.HONEYCOMB)
-    public boolean onCreateActionMode(android.view.ActionMode mode, Menu menu) {
-        return false;
-    }
-
     // Visible for testing.
     /* package */ImageSpan getMoreChip() {
         MoreImageSpan[] moreSpans = getSpannable().getSpans(0, getText().length(),
@@ -2324,17 +2297,17 @@ public class RecipientEditTextView extends MultiAutoCompleteTextView implements
     }
 
     /**
-     * Handles pasting a {@link ClipData} to this {@link RecipientEditTextView}.
+     * Handles pasting a {@link android.content.ClipData} to this {@link RecipientEditTextView}.
      */
     @TargetApi(Build.VERSION_CODES.HONEYCOMB)
-    private void handlePasteClip(ClipData clip) {
+    private void handlePasteClip(android.content.ClipData clip) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.HONEYCOMB) {
             return;
         }
 
         removeTextChangedListener(mTextWatcher);
 
-        if (clip != null && clip.getDescription().hasMimeType(ClipDescription.MIMETYPE_TEXT_PLAIN)){
+        if (clip != null && clip.getDescription().hasMimeType(android.content.ClipDescription.MIMETYPE_TEXT_PLAIN)){
             for (int i = 0; i < clip.getItemCount(); i++) {
                 CharSequence paste = clip.getItemAt(i).getText();
                 if (paste != null) {
@@ -2354,16 +2327,34 @@ public class RecipientEditTextView extends MultiAutoCompleteTextView implements
         mHandler.post(mAddTextWatcher);
     }
 
+    // For Gingerbread
+    private void supportHandlePasteClip(CharSequence paste) {
+        removeTextChangedListener(mTextWatcher);
+
+        if (paste != null) {
+            int start = getSelectionStart();
+            int end = getSelectionEnd();
+            Editable editable = getText();
+            if (start >= 0 && end >= 0 && start != end) {
+                editable.append(paste, start, end);
+            } else {
+                editable.insert(end, paste);
+            }
+            handlePasteAndReplace();
+        }
+
+        mHandler.post(mAddTextWatcher);
+    }
+
     @Override
     public boolean onTextContextMenuItem(int id) {
         if (id == android.R.id.paste) {
-            ClipboardManager clipboard = (ClipboardManager) getContext().getSystemService(
-                    Context.CLIPBOARD_SERVICE);
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
-                handlePasteClip(clipboard.getPrimaryClip());
-                return true;
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.HONEYCOMB) {
+                supportHandlePasteClip(ClipboardCompat.getText(getContext()));
+            } else {
+                handlePasteClip(ClipboardCompat.getPrimaryClip(getContext()));
             }
-            return false;
+            return true;
         }
         return super.onTextContextMenuItem(id);
     }
@@ -2771,7 +2762,7 @@ public class RecipientEditTextView extends MultiAutoCompleteTextView implements
         }
 
         String address = currentChip.getEntry().getDestination();
-        ClipData data = ClipData.newPlainText(address, address + COMMIT_CHAR_COMMA);
+        android.content.ClipData data = android.content.ClipData.newPlainText(address, address + COMMIT_CHAR_COMMA);
 
         // Start drag mode.
         startDrag(data, new RecipientChipShadow(currentChip), null, 0);
@@ -2794,7 +2785,7 @@ public class RecipientEditTextView extends MultiAutoCompleteTextView implements
         switch (event.getAction()) {
             case DragEvent.ACTION_DRAG_STARTED:
                 // Only handle plain text drag and drop.
-                return event.getClipDescription().hasMimeType(ClipDescription.MIMETYPE_TEXT_PLAIN);
+                return event.getClipDescription().hasMimeType(android.content.ClipDescription.MIMETYPE_TEXT_PLAIN);
             case DragEvent.ACTION_DRAG_ENTERED:
                 requestFocus();
                 return true;
@@ -2877,10 +2868,10 @@ public class RecipientEditTextView extends MultiAutoCompleteTextView implements
     @Override
     public void onClick(View v) {
         // Copy this to the clipboard.
-        ClipboardManager clipboard = (ClipboardManager) getContext().getSystemService(
-                Context.CLIPBOARD_SERVICE);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
-            clipboard.setPrimaryClip(ClipData.newPlainText("", mCopyAddress));
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.HONEYCOMB) {
+            ClipboardCompat.setText(getContext(), mCopyAddress);
+        } else {
+            ClipboardCompat.setPrimaryClip(getContext(), mCopyAddress);
         }
         mCopyDialog.dismiss();
     }

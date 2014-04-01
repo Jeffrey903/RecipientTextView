@@ -17,14 +17,13 @@
 package cm.confide.ex.chips;
 
 import android.accounts.Account;
-import android.annotation.TargetApi;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.database.Cursor;
 import android.database.MatrixCursor;
 import android.net.Uri;
-import android.os.Build;
 import android.provider.ContactsContract;
+import android.support.v4.widget.CursorAdapter;
 import android.text.TextUtils;
 import android.text.util.Rfc822Token;
 import android.text.util.Rfc822Tokenizer;
@@ -32,7 +31,6 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.CursorAdapter;
 import android.widget.ImageView;
 import android.widget.TextView;
 
@@ -52,7 +50,6 @@ import cm.confide.recipienttextview.app.R;
  * RecipientAlternatesAdapter backs the RecipientEditTextView for managing contacts
  * queried by email or by phone number.
  */
-@TargetApi(Build.VERSION_CODES.HONEYCOMB)
 public class RecipientAlternatesAdapter extends CursorAdapter {
     static final int MAX_LOOKUPS = 50;
     private final LayoutInflater mLayoutInflater;
@@ -443,7 +440,7 @@ public class RecipientAlternatesAdapter extends CursorAdapter {
         Cursor cursor = getCursor();
         cursor.moveToPosition(position);
         if (convertView == null) {
-            convertView = newView();
+            convertView = newView(parent);
         }
         if (cursor.getLong(Queries.Query.DATA_ID) == mCurrentId) {
             mCheckedItemPosition = position;
@@ -488,11 +485,11 @@ public class RecipientAlternatesAdapter extends CursorAdapter {
 
     @Override
     public View newView(Context context, Cursor cursor, ViewGroup parent) {
-        return newView();
+        return newView(parent);
     }
 
-    private View newView() {
-        return mLayoutInflater.inflate(R.layout.chips_recipient_dropdown_item, null);
+    private View newView(ViewGroup parent) {
+        return mLayoutInflater.inflate(R.layout.chips_recipient_dropdown_item, parent, false);
     }
 
     /*package*/ static interface OnCheckedItemChangedListener {

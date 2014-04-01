@@ -41,14 +41,14 @@ class SingleRecipientArrayAdapter extends ArrayAdapter<RecipientEntry> {
     @Override
     public View getView(int position, View convertView, ViewGroup parent) {
         if (convertView == null) {
-            convertView = newView();
+            convertView = newView(parent);
         }
         bindView(convertView, getItem(position));
         return convertView;
     }
 
-    private View newView() {
-        return mLayoutInflater.inflate(mLayoutId, null);
+    private View newView(ViewGroup parent) {
+        return mLayoutInflater.inflate(mLayoutId, parent, false);
     }
 
     private static void bindView(View view, RecipientEntry entry) {

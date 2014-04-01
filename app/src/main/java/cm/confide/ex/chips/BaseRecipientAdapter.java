@@ -17,7 +17,6 @@
 package cm.confide.ex.chips;
 
 import android.accounts.Account;
-import android.annotation.TargetApi;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.pm.PackageManager;
@@ -27,7 +26,6 @@ import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
-import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Handler;
 import android.os.Message;
@@ -48,9 +46,6 @@ import android.widget.Filterable;
 import android.widget.ImageView;
 import android.widget.TextView;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -63,7 +58,6 @@ import cm.confide.recipienttextview.app.R;
 /**
  * Adapter for showing a recipient list.
  */
-@TargetApi(Build.VERSION_CODES.HONEYCOMB)
 public abstract class BaseRecipientAdapter extends BaseAdapter implements Filterable,
         AccountSpecifier {
     private static final String TAG = "BaseRecipientAdapter";
@@ -432,7 +426,11 @@ public abstract class BaseRecipientAdapter extends BaseAdapter implements Filter
                             (ArrayList<TemporaryEntry>) results.values;
 
                     for (TemporaryEntry tempEntry : tempEntries) {
-                        putOneEntry(tempEntry, mParams.directoryId == Directory.DEFAULT,
+                        boolean isAggregatedEntry = true;
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
+                            isAggregatedEntry = mParams.directoryId == Directory.DEFAULT;
+                        }
+                        putOneEntry(tempEntry, isAggregatedEntry,
                                 mEntryMap, mNonAggregatedEntries, mExistingDestinations);
                     }
                 }
@@ -609,8 +607,10 @@ public abstract class BaseRecipientAdapter extends BaseAdapter implements Filter
 
             // Skip the local invisible directory, because the default directory already includes
             // all local results.
-            if (id == Directory.LOCAL_INVISIBLE) {
-                continue;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
+                if (id == Directory.LOCAL_INVISIBLE) {
+                    continue;
+                }
             }
 
             final DirectorySearchParams params = new DirectorySearchParams();
@@ -731,7 +731,6 @@ public abstract class BaseRecipientAdapter extends BaseAdapter implements Filter
             for (int i = 0; i < size; i++) {
                 RecipientEntry entry = entryList.get(i);
                 entries.add(entry);
-                tryFetchPhoto(entry);
                 validEntryCount++;
             }
             if (validEntryCount > mPreferredMaxResultCount) {
@@ -744,7 +743,6 @@ public abstract class BaseRecipientAdapter extends BaseAdapter implements Filter
                     break;
                 }
                 entries.add(entry);
-                tryFetchPhoto(entry);
 
                 validEntryCount++;
             }
@@ -779,104 +777,6 @@ public abstract class BaseRecipientAdapter extends BaseAdapter implements Filter
 
     protected List<RecipientEntry> getEntries() {
         return mTempEntries != null ? mTempEntries : mEntries;
-    }
-
-    private void tryFetchPhoto(final RecipientEntry entry) {
-        final Uri photoThumbnailUri = entry.getPhotoThumbnailUri();
-        if (photoThumbnailUri != null) {
-            final byte[] photoBytes = mPhotoCacheMap.get(photoThumbnailUri);
-            if (photoBytes != null) {
-                entry.setPhotoBytes(photoBytes);
-                // notifyDataSetChanged() should be called by a caller.
-            } else {
-                if (DEBUG) {
-                    Log.d(TAG, "No photo cache for " + entry.getDisplayName()
-                            + ". Fetch one asynchronously");
-                }
-                fetchPhotoAsync(entry, photoThumbnailUri);
-            }
-        }
-    }
-
-    // For reading photos for directory contacts, this is the chunksize for
-    // copying from the inputstream to the output stream.
-    private static final int BUFFER_SIZE = 1024*16;
-
-    private void fetchPhotoAsync(final RecipientEntry entry, final Uri photoThumbnailUri) {
-        final AsyncTask<Void, Void, byte[]> photoLoadTask = new AsyncTask<Void, Void, byte[]>() {
-            @Override
-            protected byte[] doInBackground(Void... params) {
-                // First try running a query. Images for local contacts are
-                // loaded by sending a query to the ContactsProvider.
-                final Cursor photoCursor = mContentResolver.query(
-                        photoThumbnailUri, PhotoQuery.PROJECTION, null, null, null);
-                if (photoCursor != null) {
-                    try {
-                        if (photoCursor.moveToFirst()) {
-                            return photoCursor.getBlob(PhotoQuery.PHOTO);
-                        }
-                    } finally {
-                        photoCursor.close();
-                    }
-                } else {
-                    // If the query fails, try streaming the URI directly.
-                    // For remote directory images, this URI resolves to the
-                    // directory provider and the images are loaded by sending
-                    // an openFile call to the provider.
-                    try {
-                        InputStream is = mContentResolver.openInputStream(
-                                photoThumbnailUri);
-                        if (is != null) {
-                            byte[] buffer = new byte[BUFFER_SIZE];
-                            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                            try {
-                                int size;
-                                while ((size = is.read(buffer)) != -1) {
-                                    baos.write(buffer, 0, size);
-                                }
-                            } finally {
-                                is.close();
-                            }
-                            return baos.toByteArray();
-                        }
-                    } catch (IOException ex) {
-                        // ignore
-                    }
-                }
-                return null;
-            }
-
-            @Override
-            protected void onPostExecute(final byte[] photoBytes) {
-                entry.setPhotoBytes(photoBytes);
-                if (photoBytes != null) {
-                    mPhotoCacheMap.put(photoThumbnailUri, photoBytes);
-                    notifyDataSetChanged();
-                }
-            }
-        };
-        photoLoadTask.executeOnExecutor(AsyncTask.SERIAL_EXECUTOR);
-    }
-
-    protected void fetchPhoto(final RecipientEntry entry, final Uri photoThumbnailUri) {
-        byte[] photoBytes = mPhotoCacheMap.get(photoThumbnailUri);
-        if (photoBytes != null) {
-            entry.setPhotoBytes(photoBytes);
-            return;
-        }
-        final Cursor photoCursor = mContentResolver.query(photoThumbnailUri, PhotoQuery.PROJECTION,
-                null, null, null);
-        if (photoCursor != null) {
-            try {
-                if (photoCursor.moveToFirst()) {
-                    photoBytes = photoCursor.getBlob(PhotoQuery.PHOTO);
-                    entry.setPhotoBytes(photoBytes);
-                    mPhotoCacheMap.put(photoThumbnailUri, photoBytes);
-                }
-            } finally {
-                photoCursor.close();
-            }
-        }
     }
 
     private Cursor doQuery(CharSequence constraint, int limit, Long directoryId) {
